@@ -1,0 +1,227 @@
+/* styles for ob-four-grids sample plugin */
+
+/* 状态栏小样式，可根据需要调整 */
+.status-bar .ob-four-grids-status {
+  padding: 0 6px;
+  color: var(--text-muted);
+}
+
+/* 弹窗内容示例 */
+.modal .four-grids-modal h2 {
+  margin-bottom: 8px;
+}
+.modal .four-grids-modal p {
+  margin: 0;
+}
+
+/* https://github.com/mgmeyers/obsidian-style-settings */
+/* @settings
+
+name: Kanban 4Q + Archive
+id: kanban-4q-archive
+settings:
+  - id: kanban-four-quadrants-archive
+    title: Kanban：四象限 + 右侧归档
+    type: class-toggle
+    addCommand: true
+*/
+
+/* Kanban：四象限 + 右侧归档
+   - 预期有 5 列表（车道）：前四列为四象限，第五列为“归档”
+   - 网格布局：左侧 2x2 四象限，最右侧一列整列为归档
+   - 通过 Style Settings 开关 class：kanban-four-quadrants-archive
+   - 或在 Kanban 笔记的 Frontmatter 中添加：cssclass: kanban-four-quadrants-archive
+*/
+.kanban-four-quadrants-archive.kanban-plugin,
+.kanban-four-quadrants-archive .kanban-plugin {
+  background-color: var(--background-primary);
+}
+
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__board>div,
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__board>div {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 1fr 1fr minmax(280px, 380px);
+  grid-template-rows: 1fr 1fr;
+  grid-template-areas:
+    "q1 q2 archive"
+    "q3 q4 archive";
+  gap: 16px;
+  overflow: auto;
+}
+
+/* 区块基础尺寸与滚动 */
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-wrapper:not(.collapse-horizontal),
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-wrapper:not(.collapse-horizontal) {
+  min-width: 100%;
+  min-height: 100%;
+  overflow: auto;
+}
+
+/* 四象限定位（假设前四个列表为四象限，第五个列表为归档） */
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-wrapper:nth-child(1),
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-wrapper:nth-child(1) { grid-area: q1; }
+
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-wrapper:nth-child(2),
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-wrapper:nth-child(2) { grid-area: q2; }
+
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-wrapper:nth-child(3),
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-wrapper:nth-child(3) { grid-area: q3; }
+
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-wrapper:nth-child(4),
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-wrapper:nth-child(4) { grid-area: q4; }
+
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-wrapper:nth-child(5),
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-wrapper:nth-child(5) {
+  grid-area: archive;
+  min-width: 280px;
+  max-width: 420px;
+}
+
+/* 隐藏占位符、收起按钮（可选） */
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-placeholder.kanban-plugin__placeholder,
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-placeholder.kanban-plugin__placeholder {
+  display: none;
+}
+
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-collapse,
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-collapse {
+  display: none;
+}
+
+/* 归档列更紧凑的卡片排版（可选） */
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-wrapper:nth-child(5) .kanban-plugin__item-content-wrapper,
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-wrapper:nth-child(5) .kanban-plugin__item-content-wrapper {
+  .markdown-preview-view>*, .cm-content>* {
+    font-size: 14px !important;
+    line-height: 1.5;
+  }
+}
+
+/* 四网格 自定义看板布局：左侧 2x2 四象限 + 右侧归档 */
+.four-grids-board {
+  height: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.four-grids-board__grid {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  grid-template-columns: 1fr 1fr minmax(280px, 420px);
+  grid-template-rows: 1fr 1fr;
+  grid-template-areas:
+    "q1 q2 archive"
+    "q3 q4 archive";
+  gap: 16px;
+  overflow: auto;
+}
+
+.four-grids-board__col {
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  padding: 12px;
+  overflow: auto;
+}
+
+.four-grids-board__col--IU { grid-area: q1; }
+.four-grids-board__col--IN { grid-area: q2; }
+.four-grids-board__col--NU { grid-area: q3; }
+.four-grids-board__col--NN { grid-area: q4; }
+.four-grids-board__col--ARCHIVE {
+  grid-area: archive;
+  min-width: 280px;
+  max-width: 420px;
+}
+
+/* 配色变量（看板视图 + Kanban 视图统一使用，可按需覆盖） */
+.four-grids-board,
+.kanban-four-quadrants-archive,
+.kanban-four-quadrants-archive .kanban-plugin {
+  --fg-IU: #e03131;   /* 重要且紧急：红 */
+  --fg-IN: #1971c2;   /* 重要不紧急：蓝 */
+  --fg-NU: #e8590c;   /* 不重要且紧急：橙 */
+  --fg-NN: #868e96;   /* 不重要不紧急：灰 */
+  --fg-ARCHIVE: var(--text-muted);
+}
+
+/* 看板视图：为四象限标题着色并加强调样式 */
+.four-grids-board__col h3 {
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+.four-grids-board__col--IU > h3 { color: var(--fg-IU); border-left: 4px solid var(--fg-IU); padding-left: 8px; }
+.four-grids-board__col--IN > h3 { color: var(--fg-IN); border-left: 4px solid var(--fg-IN); padding-left: 8px; }
+.four-grids-board__col--NU > h3 { color: var(--fg-NU); border-left: 4px solid var(--fg-NU); padding-left: 8px; }
+.four-grids-board__col--NN > h3 { color: var(--fg-NN); border-left: 4px solid var(--fg-NN); padding-left: 8px; }
+.four-grids-board__col--ARCHIVE > h3 { color: var(--fg-ARCHIVE); border-left: 4px solid var(--fg-ARCHIVE); padding-left: 8px; }
+
+/* 看板视图：为标题与添加行提供淡淡的背景，增强可读性（可选） */
+.four-grids-board__col > h3,
+.four-grids-board__add {
+  background-color: var(--background-primary);
+}
+
+/* Kanban 视图：四列标题颜色（按 1~4 列为四象限，第 5 列为归档） */
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-wrapper:nth-child(1) .kanban-plugin__lane-title,
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-wrapper:nth-child(1) .kanban-plugin__lane-title { color: var(--fg-IU); }
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-wrapper:nth-child(2) .kanban-plugin__lane-title,
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-wrapper:nth-child(2) .kanban-plugin__lane-title { color: var(--fg-IN); }
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-wrapper:nth-child(3) .kanban-plugin__lane-title,
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-wrapper:nth-child(3) .kanban-plugin__lane-title { color: var(--fg-NU); }
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-wrapper:nth-child(4) .kanban-plugin__lane-title,
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-wrapper:nth-child(4) .kanban-plugin__lane-title { color: var(--fg-NN); }
+.kanban-four-quadrants-archive.kanban-plugin .kanban-plugin__lane-wrapper:nth-child(5) .kanban-plugin__lane-title,
+.kanban-four-quadrants-archive .kanban-plugin .kanban-plugin__lane-wrapper:nth-child(5) .kanban-plugin__lane-title { color: var(--fg-ARCHIVE); }
+
+/* 可选：为 Kanban 列标题添加左侧强调条 */
+.kanban-four-quadrants-archive .kanban-plugin__lane-title {
+  border-left: 4px solid transparent;
+  padding-left: 8px;
+}
+.kanban-four-quadrants-archive .kanban-plugin__lane-wrapper:nth-child(1) .kanban-plugin__lane-title { border-left-color: var(--fg-IU); }
+.kanban-four-quadrants-archive .kanban-plugin__lane-wrapper:nth-child(2) .kanban-plugin__lane-title { border-left-color: var(--fg-IN); }
+.kanban-four-quadrants-archive .kanban-plugin__lane-wrapper:nth-child(3) .kanban-plugin__lane-title { border-left-color: var(--fg-NU); }
+.kanban-four-quadrants-archive .kanban-plugin__lane-wrapper:nth-child(4) .kanban-plugin__lane-title { border-left-color: var(--fg-NN); }
+.kanban-four-quadrants-archive .kanban-plugin__lane-wrapper:nth-child(5) .kanban-plugin__lane-title { border-left-color: var(--fg-ARCHIVE); }
+
+.four-grids-board__col h3 {
+  margin: 0 0 8px;
+}
+
+.four-grids-board__add {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.four-grids-board__add input[type="text"] {
+  flex: 1;
+}
+
+.four-grids-board__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.four-grids-board__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.four-grids-board__actions button {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+@media (max-width: 1100px) {
+  .four-grids-board__grid {
+    grid-template-columns: 1fr 1fr 260px;
+    gap: 12px;
+  }
+}

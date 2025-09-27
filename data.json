@@ -1,0 +1,7 @@
+{
+  "mySetting": "default",
+  "autoArchiveOnCheck": true,
+  "preferBoardView": true,
+  "maxArchiveItems": 500,
+  "maxQuadrantItems": 50
+}

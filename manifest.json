@@ -1,0 +1,11 @@
+{
+  "id": "ob-four-grids",
+  "name": "Four Grids",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "一键将 Obsidian 工作区分为四宫格的示例插件。",
+  "author": "Your Name",
+  "authorUrl": "",
+  "isDesktopOnly": false,
+  "main": "main.js"
+}
