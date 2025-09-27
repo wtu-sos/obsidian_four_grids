@@ -639,6 +639,7 @@ class FourGridsBoardView extends ItemView {
       col.style.flexDirection = 'column';
       col.style.overflow = 'hidden';
       col.createEl('h3', { text: sec.title });
+      let archiveInput = null;
 
       // 快速添加（除归档外）
       if (sec.key !== 'ARCHIVE') {
@@ -668,6 +669,36 @@ class FourGridsBoardView extends ItemView {
           input.value = '';
           await this.render();
         };
+      } else {
+        const addRow = col.createDiv({ cls: 'four-grids-board__add' });
+        const input = addRow.createEl('input', { type: 'text' });
+        input.placeholder = '输入筛选字符串，实时筛选（回车也可确认）';
+        input.value = this.archiveFilter || '';
+        archiveInput = input;
+        const btn = addRow.createEl('button', { text: '清除' });
+        // 先不触发整视图刷新，后面用局部刷新（仅列表）保持焦点
+        input.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' && !ev.isComposing) {
+            ev.preventDefault();
+            this.archiveFilter = input.value.trim();
+          }
+        });
+        input.addEventListener('input', () => {
+          this.archiveFilter = input.value.trim();
+        });
+        btn.onclick = () => {
+          input.value = '';
+          this.archiveFilter = '';
+          // 立即应用筛选，恢复显示且不丢失焦点
+          if (typeof renderArchiveFilterIfNeeded === 'function') {
+            renderArchiveFilterIfNeeded();
+          } else {
+            // 回退：直接显示所有列表项
+            Array.from(list?.children || []).forEach((li) => { li.style.display = ''; });
+          }
+          input.focus();
+          input.select();
+        };
       }
 
       const list = col.createEl('ul', { cls: 'four-grids-board__list' });
@@ -677,8 +708,20 @@ class FourGridsBoardView extends ItemView {
       const items = data[sec.key] || [];
       const limit = sec.key === 'ARCHIVE' ? this.plugin.settings.maxArchiveItems : this.plugin.settings.maxQuadrantItems;
       const itemsLimited = limit && items.length > limit ? items.slice(-limit) : items;
-      for (const it of itemsLimited) {
+
+      const renderArchiveFilterIfNeeded = () => {
+        if (sec.key !== 'ARCHIVE') return;
+        const f = (this.archiveFilter || '').toLowerCase();
+        Array.from(list.children).forEach((li) => {
+          const t = (li.getAttribute('data-text') || '');
+          li.style.display = !f || t.includes(f) ? '' : 'none';
+        });
+      };
+
+      const initialItemsToShow = itemsLimited; // 初次渲染先全部加入，再用样式隐藏
+      for (const it of initialItemsToShow) {
         const li = list.createEl('li', { cls: 'four-grids-board__item' });
+        if (sec.key === 'ARCHIVE') li.setAttr('data-text', it.text.toLowerCase());
         const textSpan = li.createEl('span', { text: it.text });
         const btnRow = li.createDiv({ cls: 'four-grids-board__actions' });
         // 双击编辑条目文本
@@ -733,6 +776,17 @@ class FourGridsBoardView extends ItemView {
             await this.render();
           };
         }
+      }
+
+      // 归档列：绑定局部刷新，保持输入框焦点
+      if (sec.key === 'ARCHIVE' && archiveInput) {
+        const applyFilter = () => renderArchiveFilterIfNeeded();
+        archiveInput.addEventListener('input', applyFilter);
+        archiveInput.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); applyFilter(); }
+        });
+        // 初次应用一次筛选
+        applyFilter();
       }
     }
   }
