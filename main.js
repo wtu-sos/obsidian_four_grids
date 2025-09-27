@@ -644,8 +644,14 @@ class FourGridsBoardView extends ItemView {
       if (sec.key !== 'ARCHIVE') {
         const addRow = col.createDiv({ cls: 'four-grids-board__add' });
         const input = addRow.createEl('input', { type: 'text' });
-        input.placeholder = '输入任务内容';
+        input.placeholder = '输入任务内容，回车添加';
         const btn = addRow.createEl('button', { text: '添加' });
+        input.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' && !ev.isComposing) {
+            ev.preventDefault();
+            btn.click();
+          }
+        });
         btn.onclick = async () => {
           const text = input.value.trim();
           if (!text) { new Notice('请输入任务内容'); return; }
@@ -675,6 +681,36 @@ class FourGridsBoardView extends ItemView {
         const li = list.createEl('li', { cls: 'four-grids-board__item' });
         const textSpan = li.createEl('span', { text: it.text });
         const btnRow = li.createDiv({ cls: 'four-grids-board__actions' });
+        // 双击编辑条目文本
+        textSpan.addEventListener('dblclick', async () => {
+          const editor = document.createElement('input');
+          editor.type = 'text';
+          editor.value = it.text;
+          editor.className = 'four-grids-board__edit';
+          textSpan.replaceWith(editor);
+          editor.focus();
+          editor.select();
+          const save = async (val) => {
+            const newText = (val || '').trim();
+            if (!newText || newText === it.text) { await this.render(); return; }
+            let src = await this.app.vault.read(this.file);
+            let updated;
+            if (sec.key === 'ARCHIVE') {
+              updated = renameArchiveItemText(src, it.raw, newText);
+            } else {
+              const heading = QUADRANTS.find(q=>q.key===sec.key)?.heading;
+              updated = updateTaskTextInSection(src, heading, it.text, newText);
+            }
+            updated = postProcess(updated, this.plugin.settings);
+            await this.app.vault.modify(this.file, updated);
+            await this.render();
+          };
+          editor.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); await save(editor.value); }
+            else if (e.key === 'Escape') { e.preventDefault(); await this.render(); }
+          });
+          editor.addEventListener('blur', async () => { await save(editor.value); });
+        });
 
         if (sec.key === 'ARCHIVE') {
           // 从归档“还原”回原象限
@@ -764,6 +800,54 @@ function markArchiveItemChecked(text, rawLine){
     if (lines[i].trim()===rawLine.trim()){
       lines[i] = lines[i].replace('[x]','[ ]').replace('[X]','[ ]');
       break;
+    }
+  }
+  return lines.join('\n');
+}
+
+// 修改象限中的某条任务文本（保持勾选状态不变）
+function updateTaskTextInSection(text, heading, oldText, newText) {
+  const lines = text.split(/\r?\n/);
+  let start = lines.findIndex(l => l.trim() === heading.trim());
+  if (start === -1) return text;
+  let end = findNextHeadingIndex(lines, start);
+  if (end === -1) end = lines.length;
+  const re = /^(\s*[-*]\s+\[)( |x|X)(\]\s+)(.+)$/;
+  for (let i = start + 1; i < end; i++) {
+    const m = re.exec(lines[i] || '');
+    if (m) {
+      const body = m[4].trim();
+      if (body === oldText.trim()) {
+        lines[i] = m[1] + m[2] + m[3] + newText;
+        break;
+      }
+    }
+  }
+  return lines.join('\n');
+}
+
+// 修改归档中的某条任务文本（保留来源与日期、复选框状态）
+function renameArchiveItemText(text, rawLine, newText) {
+  const lines = text.split(/\r?\n/);
+  const exactIdx = lines.findIndex(l => l === rawLine);
+  const idx = exactIdx !== -1 ? exactIdx : lines.findIndex(l => (l || '').trim() === (rawLine || '').trim());
+  if (idx === -1) return text;
+  const line = lines[idx];
+  // 优先使用严格模式：保留 (from ... @ YYYY-MM-DD)
+  const strict = line.match(/^(\s*[-*]\s+\[(?: |x|X)\]\s+)(.+?)(\s+\(from\s+.+?\s+@\s+\d{4}-\d{2}-\d{2}\)\s*)$/);
+  if (strict) {
+    lines[idx] = strict[1] + newText + strict[3];
+  } else {
+    // 回退：找到 from 标记，保留前缀与后缀
+    const head = line.match(/^(\s*[-*]\s+\[(?: |x|X)\]\s+)/);
+    const fromPos = line.indexOf(' (from ');
+    if (head && fromPos > head[0].length) {
+      lines[idx] = head[0] + newText + line.slice(fromPos);
+    } else {
+      // 实在不匹配，则简单替换 body
+      const re = /^(\s*[-*]\s+\[(?: |x|X)\]\s+)(.+)$/;
+      const m = re.exec(line);
+      lines[idx] = m ? (m[1] + newText) : line;
     }
   }
   return lines.join('\n');
