@@ -3,5 +3,7 @@
   "autoArchiveOnCheck": true,
   "preferBoardView": true,
   "maxArchiveItems": 500,
-  "maxQuadrantItems": 50
+  "maxQuadrantItems": 50,
+  "openBoardOnStartup": true,
+  "startupBoardFile": "待办事项.md"
 }

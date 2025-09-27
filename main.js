@@ -16,6 +16,8 @@ const DEFAULT_SETTINGS = {
   preferBoardView: false,   // 使用看板视图模式
   maxArchiveItems: 500,     // 归档记录上限（可配置）
   maxQuadrantItems: 50,     // 四象限每栏记录上限（可配置）
+  openBoardOnStartup: false, // 启动后自动打开看板
+  startupBoardFile: '',      // 默认看板文件路径（相对库根）
 };
 
 module.exports = class FourGridsPlugin extends Plugin {
@@ -44,6 +46,21 @@ module.exports = class FourGridsPlugin extends Plugin {
     this.addCommand({ id: 'ob-four-grids-add-IN', name: '快速添加到：重要不紧急', callback: () => new QuickAddModal(this.app, this, 'IN').open() });
     this.addCommand({ id: 'ob-four-grids-add-NU', name: '快速添加到：不重要且紧急', callback: () => new QuickAddModal(this.app, this, 'NU').open() });
     this.addCommand({ id: 'ob-four-grids-add-NN', name: '快速添加到：不重要不紧急', callback: () => new QuickAddModal(this.app, this, 'NN').open() });
+
+    // 将当前文件设为默认看板主页
+    this.addCommand({
+      id: 'ob-four-grids-set-startup-board-file',
+      name: '将当前文件设为默认看板主页',
+      callback: async () => {
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        const file = view?.file;
+        if (!file) { new Notice('请在一个 Markdown 笔记中运行该命令'); return; }
+        this.settings.startupBoardFile = file.path;
+        this.settings.openBoardOnStartup = true;
+        await this.saveSettings();
+        new Notice('已设置为默认看板主页');
+      }
+    });
 
     // Ribbon：根据设置开关，优先打开看板或快速添加
     const plugin = this;
@@ -94,6 +111,18 @@ module.exports = class FourGridsPlugin extends Plugin {
       })
     );
 
+    // 启动后自动打开默认看板主页
+    this.app.workspace.onLayoutReady(async () => {
+      try {
+        if (this.settings.openBoardOnStartup && this.settings.startupBoardFile) {
+          const af = this.app.vault.getAbstractFileByPath(this.settings.startupBoardFile);
+          if (af && af.extension === 'md') {
+            this.openBoardForActiveFile(this.settings.startupBoardFile);
+          }
+        }
+      } catch (e) { console.error('[ob-four-grids] openBoardOnStartup failed', e); }
+    });
+
     // 设置面板
     this.addSettingTab(new FourGridsSettingTab(this.app, this));
   }
@@ -111,11 +140,13 @@ module.exports = class FourGridsPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
-  // 打开当前笔记的看板视图（不依赖 Kanban 插件）
-  openBoardForActiveFile() {
+  // 打开笔记的看板视图（可选文件路径；不依赖 Kanban 插件）
+  openBoardForActiveFile(filePath) {
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    const file = view?.file;
-    if (!file) {
+    const file = filePath
+      ? this.app.vault.getAbstractFileByPath(filePath)
+      : view?.file;
+    if (!file || file.extension !== 'md') {
       new Notice('请在一个 Markdown 笔记中运行该命令');
       return;
     }
@@ -813,6 +844,42 @@ class FourGridsSettingTab extends PluginSettingTab {
           if (!Number.isNaN(n) && n > 0) {
             this.plugin.settings.maxQuadrantItems = n;
             await this.plugin.saveSettings();
+          }
+        })
+      );
+
+    new Setting(containerEl)
+      .setName('启动时打开看板')
+      .setDesc('在启动 Obsidian 后自动打开默认文件的四象限看板')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.openBoardOnStartup)
+        .onChange(async (v) => {
+          this.plugin.settings.openBoardOnStartup = v;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName('默认看板文件路径')
+      .setDesc('设置启动时自动打开的 Markdown 文件路径（相对库根），可点击右侧按钮使用当前文件')
+      .addText(text => text
+        .setPlaceholder('例如：Tasks/Inbox.md')
+        .setValue(String(this.plugin.settings.startupBoardFile || ''))
+        .onChange(async (value) => {
+          this.plugin.settings.startupBoardFile = value.trim();
+          await this.plugin.saveSettings();
+        })
+      )
+      .addButton(btn => btn
+        .setButtonText('使用当前文件')
+        .onClick(async () => {
+          const v = this.app.workspace.getActiveViewOfType(MarkdownView);
+          if (v?.file) {
+            this.plugin.settings.startupBoardFile = v.file.path;
+            await this.plugin.saveSettings();
+            new Notice('已设置为当前文件');
+          } else {
+            new Notice('请先打开一个 Markdown 文件');
           }
         })
       );
